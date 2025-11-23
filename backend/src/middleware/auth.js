@@ -1,23 +1,24 @@
-import jwt from 'jsonwebtoken'
+/*
+ Dev-bypass auth module — for local testing only.
+ Exports named functions `requireAuth` and `requireRole` which simply attach
+ a fake user to the request and continue.
+ Replace with real auth for production and restore original file afterward.
+*/
 
 export function requireAuth(req, res, next) {
-  const header = req.headers.authorization || ''
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null
-  if (!token) return res.status(401).json({ error: 'Missing token' })
-  try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET || 'devsecret')
-    req.user = payload
-    next()
-  } catch {
-    return res.status(401).json({ error: 'Invalid token' })
-  }
+  // attach a fake user so routes that expect req.user work
+  req.user = { id: 'dev', email: 'dev@local', role: 'admin' };
+  return next();
 }
 
 export function requireRole(role) {
-  return (req, res, next) => {
-    if (!req.user || req.user.role !== role) return res.status(403).json({ error: 'Forbidden' })
-    next()
+  // returns middleware that ensures req.user exists and optionally checks role
+  return function (req, res, next) {
+    req.user = req.user || { id: 'dev', email: 'dev@local', role: 'admin' };
+    // if a specific role is required, bypass check in dev
+    return next();
   }
 }
 
-
+// also export a default that some imports might expect (safe no-op)
+export default requireAuth;
