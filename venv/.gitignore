@@ -1,0 +1,71 @@
+# -----------------------------
+# Node.js Backend
+# -----------------------------
+backend/node_modules/
+backend/npm-debug.log*
+backend/yarn-debug.log*
+backend/yarn-error.log*
+backend/.env
+backend/.env.*
+backend/dist/
+backend/build/
+
+# Ignore local dev files
+backend/.DS_Store
+
+# -----------------------------
+# Python / Virtual Environments
+# -----------------------------
+venv/
+venv311/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Python version file
+.python-version
+
+# -----------------------------
+# ML Models & Binary Files
+# -----------------------------
+models/*.joblib
+
+# -----------------------------
+# CSV / Dataset / Temp Output
+# -----------------------------
+*.csv
+*.tmp
+*.temp
+*.save
+
+# If you want to ignore KDD dataset text files:
+# *.txt
+
+# -----------------------------
+# Reports
+# -----------------------------
+reports/*.json
+
+# -----------------------------
+# IDE / Editor
+# -----------------------------
+.vscode/
+.DS_Store
+*.swp
+
+# -----------------------------
+# Docker
+# -----------------------------
+*.pid
+*~
+
+# -----------------------------
+# Project-specific folders
+# -----------------------------
+archive/
+
+# Web folder temp outputs
+web/live.csv
+web/tmp_live_predictions.csv
+web/tmp_predictions.csv
