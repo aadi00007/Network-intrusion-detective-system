@@ -2,11 +2,10 @@ import express from 'express'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
-import { requireAuth, requireRole } from '../middleware/auth.js'
 
 const router = express.Router()
 
-router.post('/register', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/register', async (req, res) => {
   const { email, password, role } = req.body
   if (!email || !password) return res.status(400).json({ error: 'Email and password required' })
   const exists = await User.findOne({ email })
@@ -26,18 +25,18 @@ router.post('/login', async (req, res) => {
   res.json({ token, role: user.role })
 })
 
-router.get('/me', requireAuth, (req, res) => {
-  res.json({ user: req.user })
+router.get('/me', (req, res) => {
+  res.json({ user: { id: 'public', email: 'public@local', role: 'admin' } })
 })
 
 // Admin: list users
-router.get('/users', requireAuth, requireRole('admin'), async (_req, res) => {
+router.get('/users', async (_req, res) => {
   const users = await User.find({}, { email: 1, role: 1, createdAt: 1 }).sort({ createdAt: -1 })
   res.json(users.map(u => ({ id: u._id, email: u.email, role: u.role, createdAt: u.createdAt })))
 })
 
 // Admin: delete user
-router.delete('/users/:id', requireAuth, requireRole('admin'), async (req, res) => {
+router.delete('/users/:id', async (req, res) => {
   const { id } = req.params
   await User.deleteOne({ _id: id })
   res.json({ ok: true })

@@ -1,0 +1,96 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+venv311/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.csv
+*.arff
+*.txt
+*.jpg
+*.joblib
+*.pkl
+*.h5
+*.model
+model_backup/
+reports/
+diag_output.txt
+test_output.txt
+tmp_*.csv
+live.csv
+tmp_uploads/
+tmp_predictions.csv
+tmp_upload_predictions.csv
+tmp_live_predictions.csv
+
+# Backend specific
+backend/node_modules/
+backend/.env
+backend/.env.local
+backend/dist/
+backend/build/
+backend/.env.*
+!backend/.env.example
+
+# Frontend specific
+web/node_modules/
+web/dist/
+web/.env
+web/.env.local
+web/.vite/
+web/.env.*
+!web/.env.example
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.save
+

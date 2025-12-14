@@ -391,32 +391,55 @@ def sniff_packets(
 ) -> FlowAccumulator:
     """Capture live packets using Scapy and aggregate them."""
     try:
-        from scapy.all import sniff
+        from scapy.all import sniff, conf
+        from scapy.layers.inet import IP
+        import platform
     except ImportError as exc:
         raise SystemExit(
             "Scapy is required for live capture. Install it with `pip install scapy`."
         ) from exc
 
+    # On Windows, use L3socket if WinPcap/Npcap is not available
+    if platform.system() == "Windows":
+        try:
+            # Use L3socket for Windows when WinPcap is not available
+            from scapy.arch.windows import L3WinSocket
+            conf.L3socket = L3WinSocket
+            conf.use_pcap = False
+        except Exception as e:
+            logging.warning(f"Could not configure L3socket: {e}. Trying default configuration.")
+
     accumulator = FlowAccumulator()
 
     def _handle(packet):
         try:
-            accumulator.process_packet(packet)
+            # Only process IP packets
+            if IP in packet:
+                accumulator.process_packet(packet)
         except Exception as err:
             logging.getLogger(__name__).exception("Error handling packet: %s", err)
 
     sniff_kwargs = {
-        "iface": iface,
         "prn": _handle,
-        "filter": "tcp or udp",
+        "filter": "ip",
         "store": False,
     }
+    if iface:
+        sniff_kwargs["iface"] = iface
     if count:
         sniff_kwargs["count"] = count
     if timeout:
         sniff_kwargs["timeout"] = timeout
 
-    sniff(**sniff_kwargs)
+    try:
+        sniff(**sniff_kwargs)
+    except RuntimeError as e:
+        if "winpcap" in str(e).lower() or "layer 2" in str(e).lower():
+            logging.error("WinPcap/Npcap is required for packet capture on Windows.")
+            logging.error("Please install Npcap from https://npcap.com/")
+            logging.error("Or run as administrator and install WinPcap.")
+            raise SystemExit("Packet capture requires WinPcap/Npcap on Windows.") from e
+        raise
     return accumulator
 
 

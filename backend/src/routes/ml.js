@@ -3,7 +3,6 @@ import { spawn } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { requireAuth } from '../middleware/auth.js'
 import AlertEvent from '../models/AlertEvent.js'
 import { broadcastAlert } from './sse.js'
 
@@ -13,10 +12,10 @@ const __dirname = path.dirname(__filename)
 
 function runPythonPredict(inputPath, outputPath) {
   return new Promise((resolve, reject) => {
-    // Prefer explicit override, else fall back to system Python. Avoid non-existent repo venv by default.
-    const python = process.env.PYTHON_BIN || '/usr/bin/python3'
+    // Prefer explicit override, else fall back to system Python. On Windows, use 'py' launcher.
+    const python = process.env.PYTHON_BIN || (process.platform === 'win32' ? 'py' : '/usr/bin/python3')
     const script = process.env.PYTHON_SCRIPT || path.resolve(__dirname, '../../../nsl_kdd_analysis.py')
-    const args = [script, 'predict', '--model_path', 'models/nsl_kdd_model.joblib', '--label_map_path', 'models/label_map.joblib', '--input_path', inputPath, '--output_path', outputPath]
+    const args = [script, 'predict', '--model_path', 'models/nsl_kdd_hdc.joblib', '--label_map_path', 'models/label_map.joblib', '--input_path', inputPath, '--output_path', outputPath]
     const proc = spawn(python, args, { cwd: path.resolve(__dirname, '../../..') })
     proc.stdout.on('data', (d) => process.stdout.write(d))
     proc.stderr.on('data', (d) => process.stderr.write(d))
@@ -24,7 +23,7 @@ function runPythonPredict(inputPath, outputPath) {
   })
 }
 
-router.post('/batch', requireAuth, async (req, res) => {
+router.post('/batch', async (req, res) => {
   try {
     const { inputPath } = req.body
     if (!inputPath) return res.status(400).json({ error: 'inputPath required (absolute or repo-relative)' })

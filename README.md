@@ -28,6 +28,17 @@ python nsl_kdd_analysis.py train --model_type mlp
 
 # Ensemble (soft voting over RF, SVM, MLP)
 python nsl_kdd_analysis.py train --model_type ensemble
+
+# HDC (Hyperdimensional Computing)
+python train_hdc.py
+# Or manually:
+python nsl_kdd_analysis.py train \
+  --train_path KDDTrain+_20Percent.txt \
+  --test_path KDDTest+.txt \
+  --model_type hdc \
+  --model_out models/nsl_kdd_hdc.joblib \
+  --label_map_out models/label_map.joblib \
+  --report_out reports/metrics_hdc.json
 ```
 
 Outputs:
@@ -109,13 +120,50 @@ sudo ./venv/bin/python live_capture.py sniff \
 
 ### Prerequisites
 - Node.js 20+
+- Python 3.11+ (for ML model training and prediction)
 - MongoDB Community Server (or use Docker Compose)
+- Required Python packages: pandas, numpy, scikit-learn, joblib, scipy
+
+### Setup
+
+1. **Clone the repository**
+```bash
+git clone <your-repo-url>
+cd major_project1/major_project1
+```
+
+2. **Install Python dependencies**
+```bash
+pip install pandas numpy scikit-learn joblib scipy
+```
+
+3. **Train the HDC model** (if not already trained)
+```bash
+python train_hdc.py
+# Or use nsl_kdd_analysis.py (see Training section above)
+```
+
+4. **Setup Backend**
+```bash
+cd backend
+npm install
+cp .env.example .env  # Copy and edit .env with your settings
+# Edit .env file with your MongoDB URI and other settings
+npm run dev
+```
+
+5. **Setup Frontend** (in a new terminal)
+```bash
+cd web
+npm install
+npm run dev
+```
 
 ### Backend (API)
 ```bash
 cd backend
 npm install
-# create .env (see keys used in code):
+# Copy .env.example to .env and configure:
 # PORT=4000
 # MONGO_URI=mongodb://localhost:27017/ids
 # JWT_SECRET=devsecret

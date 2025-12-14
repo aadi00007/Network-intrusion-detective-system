@@ -13,6 +13,8 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import classification_report, accuracy_score, precision_recall_fscore_support
 from joblib import dump, load
 
+from hdc_model import HDClassifier
+
 
 def load_nsl_kdd(train_path: str, test_path: str) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
     """Load NSL-KDD train and test files.
@@ -70,6 +72,8 @@ def build_pipeline(model_type: str = "rf", class_weight: Optional[str] = "balanc
         sv = SVC(kernel=svm_kernel, probability=True, class_weight=class_weight, random_state=42)
         mlp = MLPClassifier(hidden_layer_sizes=(128, 64), activation="relu", max_iter=50, random_state=42)
         model = VotingClassifier(estimators=[("rf", rf), ("svm", sv), ("mlp", mlp)], voting="soft")
+    elif model_type == "hdc":
+        model = HDClassifier(dim=10000, n_bins=10, n_iter=50, lr=0.1, random_state=42)
     else:
         raise ValueError(f"Unknown model_type: {model_type}")
 
@@ -158,19 +162,53 @@ def predict_file(model_path: str, label_map_path: str, input_path: str, output_p
     label_info = load(label_map_path)
     classes: np.ndarray = label_info["classes_"]
 
-    df = pd.read_csv(input_path, header=None)
-    # Handle case where input has a header row (e.g., from live_capture.py)
+    df = pd.read_csv(input_path, header=None, low_memory=False)
+    
+    # Handle case where input has a header row - check for common header patterns
+    has_header = False
     try:
-        if df.shape[0] > 0 and str(df.iloc[0, 0]).strip().lower() == "duration":
-            df = df.iloc[1:, :].reset_index(drop=True)
-    except Exception:
-        pass
-    if df.shape[1] < 43:
-        # If only features present, assume up to difficulty missing and pad
-        # Expecting 41 features + label + difficulty. We'll slice features correctly.
-        pass
-
-    X = df.iloc[:, :41] if df.shape[1] >= 41 else df
+        if df.shape[0] > 0:
+            first_row = df.iloc[0]
+            first_val = str(first_row.iloc[0]).strip().lower() if len(first_row) > 0 else ""
+            # Check for header keywords
+            header_keywords = ['duration', 'port', 'protocol', 'service', 'source', 'destination', 'label', 'feature', 'flow']
+            text_count = sum(1 for val in first_row if isinstance(val, str) and val.strip().replace(' ', '').replace('_', '').isalpha())
+            
+            if any(keyword in first_val for keyword in header_keywords) or text_count > df.shape[1] * 0.3:
+                has_header = True
+                df = df.iloc[1:, :].reset_index(drop=True)
+                print(f"Detected and removed header row")
+    except Exception as e:
+        print(f"Header detection warning: {e}")
+    
+    # Convert columns to numeric where possible
+    for col_idx in range(df.shape[1]):
+        try:
+            df.iloc[:, col_idx] = pd.to_numeric(df.iloc[:, col_idx], errors='coerce')
+        except:
+            pass
+    
+    # Fill NaN with 0
+    df = df.fillna(0)
+    
+    # Flexible column handling
+    num_cols = df.shape[1]
+    target_features = 41  # NSL-KDD model expects 41 features
+    
+    if num_cols < target_features:
+        # Pad with zeros if fewer columns
+        padding_needed = target_features - num_cols
+        print(f"Dataset has {num_cols} columns, padding with {padding_needed} zero columns")
+        padding = pd.DataFrame(np.zeros((df.shape[0], padding_needed)), dtype=float)
+        df = pd.concat([df, padding], axis=1)
+        X = df.iloc[:, :target_features].astype(float)
+    elif num_cols > target_features:
+        # Truncate if more columns (use first 41)
+        print(f"Dataset has {num_cols} columns, using first {target_features} columns")
+        X = df.iloc[:, :target_features].astype(float)
+    else:
+        # Exactly 41 columns
+        X = df.iloc[:, :target_features].astype(float)
     if hasattr(pipeline.named_steps["model"], "predict_proba"):
         probs = pipeline.predict_proba(X)
         preds = np.argmax(probs, axis=1)
@@ -228,7 +266,7 @@ def main():
     train_p.add_argument("--test_path", default="KDDTest+.txt")
     train_p.add_argument("--model_out", default="models/nsl_kdd_model.joblib")
     train_p.add_argument("--label_map_out", default="models/label_map.joblib")
-    train_p.add_argument("--model_type", choices=["rf", "svm", "mlp", "ensemble"], default="rf")
+    train_p.add_argument("--model_type", choices=["rf", "svm", "mlp", "ensemble", "hdc"], default="rf")
     train_p.add_argument("--class_weight", choices=["balanced", "none"], default="balanced")
     train_p.add_argument("--svm_kernel", choices=["rbf", "linear"], default="rbf")
     train_p.add_argument("--report_out", default="reports/metrics.json")
